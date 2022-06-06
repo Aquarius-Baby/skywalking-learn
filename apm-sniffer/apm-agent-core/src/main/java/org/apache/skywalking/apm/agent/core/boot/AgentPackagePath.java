@@ -47,8 +47,10 @@ public class AgentPackagePath {
     }
 
     private static File findPath() throws AgentPackageNotFoundException {
+        // AgentPackagePath文件的绝对路径
         String classResourcePath = AgentPackagePath.class.getName().replaceAll("\\.", "/") + ".class";
 
+        // 一般情况下是被AppClassLoader加载
         URL resource = ClassLoader.getSystemClassLoader().getResource(classResourcePath);
         if (resource != null) {
             String urlString = resource.toString();
@@ -58,6 +60,7 @@ public class AgentPackagePath {
             int insidePathIndex = urlString.indexOf('!');
             boolean isInJar = insidePathIndex > -1;
 
+            // 字符串操作，找到jar包的路径
             if (isInJar) {
                 urlString = urlString.substring(urlString.indexOf("file:"), insidePathIndex);
                 File agentJarFile = null;

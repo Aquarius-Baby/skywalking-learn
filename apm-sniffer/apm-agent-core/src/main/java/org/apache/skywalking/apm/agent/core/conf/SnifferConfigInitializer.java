@@ -67,6 +67,9 @@ public class SnifferConfigInitializer {
             AGENT_SETTINGS.load(configFileStream);
             for (String key : AGENT_SETTINGS.stringPropertyNames()) {
                 String value = (String) AGENT_SETTINGS.get(key);
+                //  配置值里的占位符替换
+                // aaa = xxx
+                // bbb = ${aaa}-yyyy ==> bbb = xxx-yyyy
                 AGENT_SETTINGS.put(key, PropertyPlaceholderHelper.INSTANCE.replacePlaceholders(value, AGENT_SETTINGS));
             }
 
@@ -75,6 +78,7 @@ public class SnifferConfigInitializer {
         }
 
         try {
+            // 环境变量替换配置变量
             overrideConfigBySystemProp();
         } catch (Exception e) {
             LOGGER.error(e, "Failed to read the system properties.");
@@ -92,21 +96,24 @@ public class SnifferConfigInitializer {
             }
         }
 
+        // 将配置信息映射到Config 类
         initializeConfig(Config.class);
         // reconfigure logger after config initialization
+        // 根据配置信息，重新指定日志解析器
         configureLogger();
         LOGGER = LogManager.getLogger(SnifferConfigInitializer.class);
-
+        // 做了一些检查，agent名称
         if (StringUtil.isEmpty(Config.Agent.SERVICE_NAME)) {
             throw new ExceptionInInitializerError("`agent.service_name` is missing.");
         }
+        // 后端的地址
         if (StringUtil.isEmpty(Config.Collector.BACKEND_SERVICE)) {
             throw new ExceptionInInitializerError("`collector.backend_service` is missing.");
         }
         if (Config.Plugin.PEER_MAX_LENGTH <= 3) {
             LOGGER.warn(
-                "PEER_MAX_LENGTH configuration:{} error, the default value of 200 will be used.",
-                Config.Plugin.PEER_MAX_LENGTH
+                    "PEER_MAX_LENGTH configuration:{} error, the default value of 200 will be used.",
+                    Config.Plugin.PEER_MAX_LENGTH
             );
             Config.Plugin.PEER_MAX_LENGTH = 200;
         }
@@ -128,9 +135,9 @@ public class SnifferConfigInitializer {
             ConfigInitializer.initialize(AGENT_SETTINGS, configClass);
         } catch (IllegalAccessException e) {
             LOGGER.error(e,
-                         "Failed to set the agent settings {}"
-                             + " to Config={} ",
-                         AGENT_SETTINGS, configClass
+                    "Failed to set the agent settings {}"
+                            + " to Config={} ",
+                    AGENT_SETTINGS, configClass
             );
         }
     }
@@ -198,9 +205,11 @@ public class SnifferConfigInitializer {
      * @return the config file {@link InputStream}, or null if not needEnhance.
      */
     private static InputStreamReader loadConfig() throws AgentPackageNotFoundException, ConfigNotFoundException {
+        // 1、系统配置 skywalking_config 的值
         String specifiedConfigPath = System.getProperty(SPECIFIED_CONFIG_PATH);
+        // 如果没有配置，则获取默认的配置文件
         File configFile = StringUtil.isEmpty(specifiedConfigPath) ? new File(
-            AgentPackagePath.getPath(), DEFAULT_CONFIG_FILE_NAME) : new File(specifiedConfigPath);
+                AgentPackagePath.getPath(), DEFAULT_CONFIG_FILE_NAME) : new File(specifiedConfigPath);
 
         if (configFile.exists() && configFile.isFile()) {
             try {
